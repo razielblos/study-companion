@@ -1,10 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Onboarding } from "@/components/Onboarding";
-import { useStore } from "@/store/useStore";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Disciplinas from "./pages/Disciplinas";
 import SubjectDetail from "./pages/SubjectDetail";
@@ -17,16 +16,51 @@ import Arquivos from "./pages/Arquivos";
 import Progresso from "./pages/Progresso";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Cadastro from "./pages/Cadastro";
+import RecuperarSenha from "./pages/RecuperarSenha";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 const AppContent = () => {
-  const onboardingDone = useStore((s) => s.profile.onboardingDone);
-  if (!onboardingDone) return <Onboarding />;
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppLayout />}>
+        {/* Public auth routes */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
+        <Route path="/recuperar-senha" element={<PublicRoute><RecuperarSenha /></PublicRoute>} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Protected app routes */}
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/disciplinas" element={<Disciplinas />} />
           <Route path="/disciplinas/:id" element={<SubjectDetail />} />
@@ -49,7 +83,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner />
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

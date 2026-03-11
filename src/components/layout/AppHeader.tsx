@@ -1,35 +1,34 @@
-import { Search, Bell } from 'lucide-react';
-import { useStore } from '@/store/useStore';
+import { Search, Bell, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onOpenSearch: () => void;
 }
 
 export function AppHeader({ onOpenSearch }: HeaderProps) {
-  const profile = useStore((s) => s.profile);
-  const semesters = useStore((s) => s.semesters);
-  const notifications = useStore((s) => s.notifications);
-  const activeSemester = semesters.find((s) => s.active);
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const [showNotifs, setShowNotifs] = useState(false);
-  const markNotificationRead = useStore((s) => s.markNotificationRead);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const initials = profile.name
+  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuário';
+  const initials = displayName
     .split(' ')
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
   return (
     <header className="h-14 border-b border-border bg-background-secondary flex items-center justify-between px-6 sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        {activeSemester && (
-          <span className="font-mono text-xs px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-            {activeSemester.name}
-          </span>
-        )}
+        {/* Workspace switcher will go here later */}
       </div>
 
       <div className="flex items-center gap-3">
@@ -44,46 +43,41 @@ export function AppHeader({ onOpenSearch }: HeaderProps) {
         </button>
 
         {/* Notifications */}
+        <button className="relative h-9 w-9 rounded-md flex items-center justify-center text-text-secondary hover:text-foreground hover:bg-card transition-colors">
+          <Bell className="h-[18px] w-[18px]" />
+        </button>
+
+        {/* User menu */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifs(!showNotifs)}
-            className="relative h-9 w-9 rounded-md flex items-center justify-center text-text-secondary hover:text-foreground hover:bg-card transition-colors"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-heading font-bold bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
           >
-            <Bell className="h-[18px] w-[18px]" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-heading font-bold flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
+            {initials || 'U'}
           </button>
-          {showNotifs && (
-            <div className="absolute right-0 top-11 w-80 card-surface p-3 shadow-xl animate-scale-in z-50">
-              <p className="font-heading text-sm font-semibold mb-2">Notificações</p>
-              {notifications.length === 0 ? (
-                <p className="text-text-secondary text-sm py-4 text-center">Nenhuma notificação</p>
-              ) : (
-                <ul className="space-y-1 max-h-60 overflow-y-auto scrollbar-thin">
-                  {notifications.slice(0, 10).map((n) => (
-                    <li
-                      key={n.id}
-                      onClick={() => markNotificationRead(n.id)}
-                      className={`text-sm p-2 rounded cursor-pointer transition-colors ${n.read ? 'text-text-secondary' : 'text-foreground bg-card'}`}
-                    >
-                      {n.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div className="absolute right-0 top-11 w-56 card-surface p-1.5 shadow-xl animate-scale-in z-50">
+                <div className="px-3 py-2 border-b border-border mb-1">
+                  <p className="font-heading text-sm font-semibold text-foreground truncate">{displayName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                </div>
+                <button
+                  onClick={() => { setShowUserMenu(false); navigate('/configuracoes'); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-card rounded transition-colors"
+                >
+                  <User className="h-4 w-4" /> Meu perfil
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded transition-colors"
+                >
+                  <LogOut className="h-4 w-4" /> Sair
+                </button>
+              </div>
+            </>
           )}
-        </div>
-
-        {/* Avatar */}
-        <div
-          className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-heading font-bold"
-          style={{ backgroundColor: profile.avatarColor + '22', color: profile.avatarColor }}
-        >
-          {initials || 'U'}
         </div>
       </div>
     </header>
