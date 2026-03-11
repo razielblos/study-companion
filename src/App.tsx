@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { WorkspaceProvider, useWorkspace } from "@/contexts/WorkspaceContext";
 import Dashboard from "./pages/Dashboard";
 import Disciplinas from "./pages/Disciplinas";
 import SubjectDetail from "./pages/SubjectDetail";
@@ -49,18 +50,39 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function WorkspaceGuard({ children }: { children: React.ReactNode }) {
+  const { loading } = useWorkspace();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground font-heading">Carregando workspace...</p>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 const AppContent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public auth routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
         <Route path="/recuperar-senha" element={<PublicRoute><RecuperarSenha /></PublicRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected app routes */}
-        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route element={
+          <ProtectedRoute>
+            <WorkspaceProvider>
+              <WorkspaceGuard>
+                <AppLayout />
+              </WorkspaceGuard>
+            </WorkspaceProvider>
+          </ProtectedRoute>
+        }>
           <Route path="/" element={<Dashboard />} />
           <Route path="/disciplinas" element={<Disciplinas />} />
           <Route path="/disciplinas/:id" element={<SubjectDetail />} />

@@ -1,26 +1,24 @@
 import { useState } from 'react';
-import { useStore } from '@/store/useStore';
-import { Plus, FolderOpen, X, FileText, File } from 'lucide-react';
+import { Plus, FolderOpen, X, FileText } from 'lucide-react';
+import { useFiles, useSubjects, useFileMutations } from '@/hooks/useSupabaseData';
 
 export default function Arquivos() {
-  const files = useStore((s) => s.files);
-  const subjects = useStore((s) => s.subjects);
-  const addFile = useStore((s) => s.addFile);
-  const deleteFile = useStore((s) => s.deleteFile);
+  const { data: files = [] } = useFiles();
+  const { data: subjects = [] } = useSubjects();
+  const { addFile, deleteFile } = useFileMutations();
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'pdf', subjectId: '', link: '', description: '', folder: '', size: '' });
+  const [form, setForm] = useState({ name: '', file_type: 'pdf', subject_id: '' as string | null, url: '', description: '', folder: '', size: '' });
 
-  const getSubject = (id: string) => subjects.find((s) => s.id === id);
+  const getSubject = (id: string) => subjects.find((s: any) => s.id === id) as any;
+  const FILE_TYPES = ['pdf', 'docx', 'xlsx', 'pptx', 'zip', 'img', 'outro'];
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    addFile(form);
-    setForm({ name: '', type: 'pdf', subjectId: '', link: '', description: '', folder: '', size: '' });
+    addFile.mutate({ ...form, subject_id: form.subject_id || null });
+    setForm({ name: '', file_type: 'pdf', subject_id: '', url: '', description: '', folder: '', size: '' });
     setShowAdd(false);
   };
-
-  const FILE_TYPES = ['pdf', 'docx', 'xlsx', 'pptx', 'zip', 'img', 'outro'];
 
   return (
     <div className="max-w-4xl">
@@ -34,19 +32,19 @@ export default function Arquivos() {
       {showAdd && (
         <div className="card-surface p-5 mb-6 animate-scale-in">
           <form onSubmit={handleAdd} className="space-y-3">
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome do arquivo *" className="w-full h-9 px-3 rounded-md bg-secondary border border-border text-sm text-foreground" />
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nome do arquivo *" className="w-full h-9 px-3 rounded-md bg-secondary border border-border text-sm text-foreground" />
             <div className="grid grid-cols-2 gap-3">
-              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-9 px-3 rounded-md bg-secondary border border-border text-xs font-heading text-foreground uppercase">
-                {FILE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              <select value={form.file_type} onChange={e => setForm({ ...form, file_type: e.target.value })} className="h-9 px-3 rounded-md bg-secondary border border-border text-xs font-heading text-foreground uppercase">
+                {FILE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <select value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} className="h-9 px-3 rounded-md bg-secondary border border-border text-xs font-heading text-foreground">
+              <select value={form.subject_id || ''} onChange={e => setForm({ ...form, subject_id: e.target.value || null })} className="h-9 px-3 rounded-md bg-secondary border border-border text-xs font-heading text-foreground">
                 <option value="">Sem disciplina</option>
-                {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} placeholder="Link (Google Drive, OneDrive, etc.)" className="w-full h-9 px-3 rounded-md bg-secondary border border-border text-sm text-foreground" />
+            <input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="Link (Google Drive, OneDrive, etc.)" className="w-full h-9 px-3 rounded-md bg-secondary border border-border text-sm text-foreground" />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-text-secondary">Cancelar</button>
+              <button type="button" onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancelar</button>
               <button type="submit" className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-heading">Salvar</button>
             </div>
           </form>
@@ -55,30 +53,28 @@ export default function Arquivos() {
 
       {files.length === 0 ? (
         <div className="text-center py-16">
-          <FolderOpen className="h-12 w-12 text-text-tertiary mx-auto mb-3" />
-          <p className="text-text-secondary font-heading text-sm">Nenhum arquivo cadastrado</p>
+          <FolderOpen className="h-12 w-12 text-muted-foreground/60 mx-auto mb-3" />
+          <p className="text-muted-foreground font-heading text-sm">Nenhum arquivo cadastrado</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-primary text-sm font-heading hover:underline">Adicionar referência de arquivo</button>
         </div>
       ) : (
         <div className="space-y-2">
-          {files.map((file) => {
-            const subj = getSubject(file.subjectId);
+          {files.map((file: any) => {
+            const subj = getSubject(file.subject_id);
             return (
               <div key={file.id} className="card-surface p-4 flex items-center gap-3 group">
                 <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-text-secondary" />
+                  <FileText className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-heading text-foreground truncate">{file.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-mono text-text-tertiary uppercase">{file.type}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">{file.file_type}</span>
                     {subj && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: subj.color + '22', color: subj.color }}>{subj.name}</span>}
                   </div>
                 </div>
-                {file.link && (
-                  <a href={file.link} target="_blank" rel="noopener" className="text-primary text-xs font-heading hover:underline shrink-0">Abrir</a>
-                )}
-                <button onClick={() => deleteFile(file.id)} className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-destructive transition-all">
+                {file.url && <a href={file.url} target="_blank" rel="noopener" className="text-primary text-xs font-heading hover:underline shrink-0">Abrir</a>}
+                <button onClick={() => deleteFile.mutate(file.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-destructive transition-all">
                   <X className="h-4 w-4" />
                 </button>
               </div>
