@@ -1,30 +1,18 @@
-import { useStore } from '@/store/useStore';
 import { useState } from 'react';
+import { useStore } from '@/store/useStore';
 
 export default function Kanban() {
   const tasks = useStore((s) => s.tasks);
   const subjects = useStore((s) => s.subjects);
   const kanbanColumns = useStore((s) => s.kanbanColumns);
   const moveTask = useStore((s) => s.moveTask);
-  const [filterSubject, setFilterSubject] = __import_useState('');
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const [filterSubject, setFilterSubject] = useState('');
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   const getSubject = (id: string) => subjects.find((s) => s.id === id);
 
   let filtered = tasks.filter((t) => t.status !== 'cancelada');
   if (filterSubject) filtered = filtered.filter((t) => t.subjectId === filterSubject);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-    const overId = String(over.id);
-    // Check if dropped on a column
-    const col = kanbanColumns.find((c) => c.id === overId);
-    if (col) {
-      moveTask(String(active.id), col.id);
-    }
-  };
 
   return (
     <div className="max-w-full">
@@ -47,9 +35,14 @@ export default function Kanban() {
               </div>
 
               <div
-                className="space-y-2 min-h-[200px] p-2 rounded-lg bg-background-secondary border border-border-subtle"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => {/* handled by dnd-kit */}}
+                className="space-y-2 min-h-[200px] p-2 rounded-lg bg-background-secondary border border-border-subtle transition-colors"
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-primary/40'); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('border-primary/40'); }}
+                onDrop={(e) => {
+                  e.currentTarget.classList.remove('border-primary/40');
+                  const taskId = e.dataTransfer.getData('taskId');
+                  if (taskId) moveTask(taskId, col.id);
+                }}
               >
                 {colTasks.map((task) => {
                   const subj = getSubject(task.subjectId);
@@ -57,8 +50,9 @@ export default function Kanban() {
                     <div
                       key={task.id}
                       draggable
-                      onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                      className="card-surface p-3 cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all"
+                      onDragStart={(e) => { e.dataTransfer.setData('taskId', task.id); setDraggedTaskId(task.id); }}
+                      onDragEnd={() => setDraggedTaskId(null)}
+                      className={`card-surface p-3 cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         {subj && <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: subj.color }} />}
@@ -80,6 +74,3 @@ export default function Kanban() {
     </div>
   );
 }
-
-// Fix: useState import
-import { useState as __import_useState } from 'react';
