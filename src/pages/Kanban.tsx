@@ -1,7 +1,5 @@
 import { useStore } from '@/store/useStore';
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useState } from 'react';
 
 export default function Kanban() {
   const tasks = useStore((s) => s.tasks);
